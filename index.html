@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quiz</title>
+    <link rel="stylesheet" href="/style.css?t=<?php echo(microtime(true).rand()); ?>" type="text/css" />
+    <meta http-equiv="Cache-Control" content="no-cache">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.10/vue.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.17/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/imask"></script>
+    <script src="https://unpkg.com/imask"></script>
+  </head>
+  <body>
+    <section class="container">
+      <!--questionBox-->
+
+      <div class="questionBox" id="app">
+      
+        <div class="startBox" v-if="!isQuizStarted && !isQuizFinished">
+          <div class="startImage"></div>
+
+          <div class="quiz-start__content">
+            <div class="fenix">
+              <img src="Union.svg" alt="log" />
+            </div>
+            <div class="mainTittle">
+              <div class="mainTittle_tittle">ЖК Таймс</div>
+              <ul class="main-tile__features">
+                <li class="main-tile__feature">Жилой комплекс бизнес-класса</li>
+                <li class="main-tile__feature">Квартиры с террасами</li>
+                <li class="main-tile__feature">Потолки 2,9 и 3,6 метра</li>
+              </ul>
+            </div>
+            <div class="content__secondary-tiles">
+              <div class="content__secondary-tiles_left">
+                <div class="content__secondary_text">
+                  Рассрочка без процентов
+                </div>
+                <div class="content__secondary_text_lower">
+                  На срок до 12 месяцев
+                </div>
+              </div>
+              <div class="content__secondary-tiles_right">
+                <div class="content__secondary_text">Ипотека от 3,9%</div>
+                <div class="content__secondary_text_lower">
+                  На срок до 30 лет
+                </div>
+              </div>
+            </div>
+            <div class="checkHome">
+              <button v-on:click="startQuiz();">Выбрать квартиру<img src="Frame.svg" alt="log" /></button>
+            </div>
+          </div>
+        </div>
+        <!-- transition -->
+        <div  v-if="isQuizStarted && !isQuizFinished"
+          class="questionContainer"
+          v-if="questionIndex < quiz.questions.length"
+          :key="questionIndex"
+        >
+          <section class="answerText">
+            <!-- <button @click="submit">Вперед</button> -->
+            <div class="fenix">
+              <img src="Union.svg" alt="log" />
+            </div>
+            <div class="optionContainer">
+              <div
+                class="option"
+                v-for="(response, index) in quiz.questions[questionIndex].responses"
+                :key="index"
+              >
+                <div
+                  v-if="quiz.questions[questionIndex].answerTypeIsMulti"
+                  class="text_answer"
+                  :class="{ 'questionWithoutImage': !questionHasImage(response)}"
+                >
+                  <div class="checkbox-circle">
+                    <input
+                      :id="'checkbox-circle' + index"
+                      type="checkbox"
+                      v-if="quiz.questions[questionIndex].answerTypeIsMulti"
+                      v-model="userResponses[questionIndex]"
+                      :value="index"
+                    />
+                    <label
+                      class="text"
+                      :for="'checkbox-circle' + index"
+                      :class="{ 'is-selected': isResponseSelected(index) }"
+                    >
+                      {{ response.text }}
+                    </label>
+                  </div>
+                </div>
+                <label
+                  :for="'radio-circle' + index"
+                  v-if="!quiz.questions[questionIndex].answerTypeIsMulti"
+                  :class="{ 'questionWithoutImage': !questionHasImage(response), 'is-selected': isResponseSelected(index) }"
+                  class="text_answer"
+                >
+                  <div class="radio-circle">
+                    <input
+                      :id="'radio-circle' + index"
+                      type="radio"
+                      v-if="!quiz.questions[questionIndex].answerTypeIsMulti"
+                      v-model="userResponses[questionIndex]"
+                      :value="index"
+                    />
+                    <label
+                      class="text"
+                      :for="'radio-circle' + index"
+                      :class="{ 'is-selected': isResponseSelected(index) }"
+                    >
+                      {{ response.text }}
+                    </label>
+                  </div>
+                </label>
+                <label
+                  v-if="quiz.questions[questionIndex].answerTypeIsMulti"
+                  :for="'checkbox-circle' + index"
+                  :class="{ 'is-selected': isResponseSelected(index) }"
+                  ><div class="image_home">
+                    <img
+                      v-if="response.image"
+                      :src="response.image"
+                      alt="Изображение ответа"
+                    />
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="progressContainer">
+              <progress
+                class="progress"
+                :value="((questionIndex+1)/quiz.questions.length)*100"
+                max="100"
+              >
+                {{(questionIndex/quiz.questions.length+1)*100}}%
+              </progress>
+            </div>
+          </section>
+          <section class="questionText">
+            <img src="Union.png" alt="log" />
+            <!-- questionTitle -->
+
+            <h1 class="titleContainer">
+              <div class="title">
+                &nbsp;{{ questionIndex + 1 }}. &nbsp; &nbsp;
+              </div>
+              <div class="title">{{ quiz.questions[questionIndex].text }}</div>
+            </h1>
+            <!--pagination-->
+
+            <nav class="pagination" role="navigation" aria-label="pagination">
+              <a
+                v-if="questionIndex > 0"
+                class="button"
+                v-on:click="prev();"
+                :class="{ 'is-active': areResponsesSelected() }"
+                :disabled="questionIndex < 1"
+              >
+                <i class="arrow-back">Назад</i>
+              </a>
+              <!-- next button -->
+              <a
+                v-if="questionIndex < quiz.questions.length -1"
+                class="button"
+                :disabled="isNextButtonDisabled"
+                :class="{ 'is-active': areResponsesSelected() }"
+                v-on:click="next();"
+              >
+                <i class="arrow"
+                  >{{ areResponsesSelected() ? 'Далее' : 'Далее' }}</i
+                >
+              </a>
+              <a
+                v-if="questionIndex == quiz.questions.length -1"
+                class="button"
+                :class="{ 'is-active': areResponsesSelected() }"
+                v-on:click="finishQuiz();"
+              >
+                <i class="finished"
+                  >{{ areResponsesSelected() ? 'Готово' : 'Готово' }}</i
+                >
+              </a>
+            </nav>
+            <!--/pagination-->
+          </section> 
+          </div>
+          <div class="finishBox" v-if="isQuizStarted && isQuizFinished">
+             <div class="fenix">
+              <img src="Union.svg" alt="log" />
+            </div>
+            <div class="finishbox_fon">
+    
+            </div>
+            <div class="finishBox_inner">
+            <div class="quiz-finishBox">
+            <div class="quiz-finishBox-title">
+              Оставьте номер телефона, и мы подготовим лучшее предложение под Ваши параметры
+            </div>
+            <div class="quiz-finishBox-form">
+              <form  class="form"  @submit.prevent="submitForm">
+                Оставить заявку
+                <div class="formInput">  <label for="name"></label>
+                  <input type="text" id="name"  v-model="formData.name" placeholder="Имя" required>
+                <label  for="phone"></label>
+                <input type="text" id="phone" v-model="formData.phone" @input="validatePhone" v-mask="'0 (000) 00-00-000'"
+                 placeholder="+7 (___) ___ -__-__" required>
+              </div>
+                <div class="checkHome">
+                  <button type="submit">Отправить<img src="Frame.svg" alt="log" /></button>
+                </div>
+                <div  class="quiz-finishBox-form-text">
+                  Нажимая кнопку <span>«Отправить»</span>, вы подтверждаете свое согласие на обработку персональных данных</div>
+              </form>
+            
+              <div v-if="submitted">
+                <p>Спасибо за вашу заявку, {{ formData.name }}!</p>
+              </div>
+              
+          </div>
+        </div>
+      </div>
+      </div>
+    </section>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.10/vue.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <script src="./script.js"></script>
+  </body>
+</html>
